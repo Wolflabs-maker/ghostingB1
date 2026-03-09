@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLF LABS // Ghosting Enigma B1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-purple: #b026ff;
+            --neon-cyan: #00f2ff;
+            --bg-dark: #050508;
+            --hud-bg: rgba(10, 5, 25, 0.95);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(176, 38, 255, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                linear-gradient(rgba(176, 38, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(176, 38, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        .tech-font { font-family: 'JetBrains Mono', monospace; }
+        .purple-text { color: var(--neon-purple); text-shadow: 0 0 10px rgba(176, 38, 255, 0.5); }
+        .cyan-text { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 242, 255, 0.5); }
+
+        /* HUD ELEMENTS */
+        .hud-panel {
+            background: var(--hud-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--neon-purple);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+            border-radius: 4px;
+        }
+
+        .hud-corner {
+            position: absolute; width: 14px; height: 14px; border-color: var(--neon-cyan); border-style: solid;
+        }
+        .hud-corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .hud-corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+        .hud-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+        .hud-corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+        /* TAB MENU */
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #666;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 10px;
+            letter-spacing: 2px;
+            padding: 12px 20px;
+        }
+        .tab-btn.active {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+            background: rgba(176, 38, 255, 0.1);
+            box-shadow: 0 0 15px rgba(176, 38, 255, 0.3);
+        }
+
+        /* BUTTONS */
+        .choice-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            transition: all 0.2s;
+        }
+        .choice-btn.selected {
+            background: rgba(176, 38, 255, 0.15);
+            border-color: var(--neon-purple);
+            color: white;
+            box-shadow: 0 0 20px rgba(176, 38, 255, 0.4);
+        }
+        .choice-btn:hover:not(.selected) { background: rgba(255, 255, 255, 0.05); }
+
+        /* DROPZONE */
+        .dropzone {
+            min-height: 100px;
+            border: 1px dashed var(--neon-purple);
+            background: rgba(0, 0, 0, 0.4);
+            display: flex; flex-wrap: wrap; gap: 10px; padding: 20px;
+            align-items: center; justify-content: center;
+            border-radius: 4px;
+        }
+        .word-chip {
+            background: rgba(176, 38, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            color: #fff; padding: 12px 20px;
+            font-family: 'JetBrains Mono', monospace; font-weight: bold;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .word-chip.used { opacity: 0.1; pointer-events: none; }
+        
+        .drop-chip {
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: #fff; padding: 12px 20px;
+            font-family: 'JetBrains Mono', monospace; font-weight: bold;
+            cursor: pointer; border-radius: 2px;
+        }
+        .drop-chip:hover { background: rgba(255, 51, 102, 0.2); border-color: #ff3366; color: #ff3366; }
+        .drop-chip:hover::after { content: ' ×'; }
+
+        /* OPINION SLIDER */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { background: #1a1a1a; height: 6px; border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--neon-cyan); cursor: pointer; margin-top: -7px; box-shadow: 0 0 10px var(--neon-cyan); }
+
+        .hide { display: none !important; }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* SCANNER LINE */
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+        .scanner { position: fixed; top: 0; left: 0; width: 100%; height: 2px; background: rgba(176, 38, 255, 0.5); animation: scanline 8s linear infinite; pointer-events: none; z-index: 50; }
+
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="scanner"></div>
+
+    <!-- HEADER -->
+    <header class="max-w-5xl mx-auto w-full flex justify-between items-center mb-8 border-b border-[#b026ff]/30 pb-6 relative z-10">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-black italic uppercase tracking-tighter">WOLF <span class="purple-text">LABS</span></h1>
+            <p class="text-[0.6rem] tech-font text-[#00f2ff] uppercase tracking-[0.4em]">Ghosting Enigma // B1 Laboratory</p>
+        </div>
+        <div class="text-right">
+            <div class="text-[0.6rem] tech-font text-gray-500 uppercase tracking-widest">System Status</div>
+            <div class="text-lg font-bold tech-font purple-text">DECRYPTING...</div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto w-full flex-grow flex flex-col relative z-10">
+        
+        <!-- DASHBOARD NAVIGATION -->
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <button onclick="switchMode('evidence')" id="btn-evidence" class="tab-btn active tech-font">NODE 1: EVIDENCE</button>
+            <button onclick="switchMode('stand')" id="btn-stand" class="tab-btn tech-font">NODE 2: STANDPOINT</button>
+            <button onclick="switchMode('debate')" id="btn-debate" class="tab-btn tech-font">NODE 3: DEBATE CHAMBER</button>
+        </div>
+
+        <!-- 1. EVIDENCE ANALYSIS (Choice & Builder) -->
+        <div id="mode-evidence" class="hud-panel p-6 md:p-12 fade-in">
+            <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+            <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+
+            <div id="evidence-container" class="min-h-[350px] flex flex-col justify-center items-center w-full">
+                <!-- Content generated via JS -->
+            </div>
+
+            <div class="flex justify-between items-center mt-10 border-t border-gray-800 pt-6">
+                <span id="undo-msg" class="text-[0.6rem] tech-font text-gray-500 italic opacity-0">* Click again to undo</span>
+                <button id="next-ev-btn" onclick="processEvidence()" class="hide bg-[#00f2ff]/10 border border-[#00f2ff] text-[#00f2ff] font-bold py-3 px-10 rounded uppercase text-xs tech-font hover:bg-[#00f2ff] hover:text-black transition-all">
+                    Process Sequence >
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. WHERE DO YOU STAND? (Opinion Calibration) -->
+        <div id="mode-stand" class="hide hud-panel p-8 md:p-14 fade-in">
+            <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+            <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+
+            <h2 class="text-center text-2xl font-bold mb-10">Opinion Calibration Protocol</h2>
+            
+            <div class="space-y-12 max-w-2xl mx-auto">
+                <div>
+                    <p class="text-center text-gray-300 mb-6">"Is ghosting ever an acceptable way to end a relationship?"</p>
+                    <div class="flex justify-between text-[0.6rem] tech-font text-gray-500 mb-4 uppercase tracking-widest">
+                        <span>Never Acceptable</span>
+                        <span>Sometimes OK</span>
+                        <span>Always OK</span>
+                    </div>
+                    <input type="range" min="1" max="5" value="3" class="w-full" id="stand-slider">
+                </div>
+
+                <div class="bg-black/50 p-6 border border-gray-800 rounded">
+                    <p class="text-xs tech-font text-yellow-500 uppercase mb-4 tracking-widest">Speaking Prompt:</p>
+                    <p class="text-lg italic leading-relaxed">
+                        "Based on my calibration, I think ghosting <span class="cyan-text font-bold">[MODAL]</span> be okay if the person is toxic, but it <span class="cyan-text font-bold">[MODAL]</span> be used as a standard practice."
+                    </p>
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-sm text-gray-400">Discuss with your instructor: Use <span class="cyan-text font-bold">Must / Might / Can't</span> to justify your stance.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. DEBATE CHAMBER (Perspective Analysis) -->
+        <div id="mode-debate" class="hide hud-panel p-8 md:p-14 fade-in">
+            <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
+            <div class="hud-corner bl"></div><div class="hud-corner br"></div>
+
+            <h2 class="text-center text-2xl font-bold mb-10">Deduction Debate Module</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Side A -->
+                <div class="bg-[#b026ff]/5 border border-[#b026ff]/30 p-6 rounded relative">
+                    <span class="absolute -top-3 left-4 bg-purple-600 text-[0.5rem] px-2 py-1 uppercase tech-font">Viewpoint A</span>
+                    <p class="text-sm leading-relaxed text-gray-300 italic">
+                        "If someone ghosts you, they <span class="white font-bold">must</span> be immature. There is no excuse for not sending a simple text."
+                    </p>
+                </div>
+                <!-- Side B -->
+                <div class="bg-[#00f2ff]/5 border border-[#00f2ff]/30 p-6 rounded relative">
+                    <span class="absolute -top-3 left-4 bg-cyan-600 text-[0.5rem] px-2 py-1 uppercase tech-font">Viewpoint B</span>
+                    <p class="text-sm leading-relaxed text-gray-300 italic">
+                        "They <span class="white font-bold">might</span> be struggling with mental health or anxiety. You can't assume they are just mean."
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-12 p-6 border-t border-gray-800 text-center">
+                <p class="text-[0.6rem] tech-font text-gray-500 uppercase tracking-[0.3em] mb-4">Transmission Task:</p>
+                <h3 class="text-xl font-bold mb-6 italic">"Who do you agree with? Why?"</h3>
+                <div class="flex flex-col items-center gap-4">
+                    <div class="wave-container">
+                        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                    </div>
+                    <p class="text-xs text-gray-400">Explain your deduction to the class using your best B1 Modals.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-5xl mx-auto w-full text-center mt-8 pt-6 border-t border-gray-900">
+        <p class="text-[0.55rem] tech-font text-gray-600 uppercase tracking-widest">Wolf Labs // 80% STT Optimized // No Passive Learning</p>
+    </footer>
+
+    <!-- LOGIC -->
+    <script>
+        const missions = [
+            {
+                type: 'choice',
+                title: 'ELECTRONIC EVIDENCE #01',
+                prompt: 'He read the message 5 hours ago and just posted an Instagram Story.',
+                sentence: 'He <span class="cyan-text">[ ? ]</span> be ignoring me.',
+                options: ['must', 'might', "can't"],
+                answer: 'must'
+            },
+            {
+                type: 'builder',
+                title: 'SYNTAX SEQUENCE #01',
+                prompt: 'They said they were sleeping, but they are online on WhatsApp right now.',
+                words: ["can't", "be", "They", "sleeping."],
+                answer: "They can't be sleeping."
+            }
+        ];
+
+        let currentEvIndex = 0;
+        let builtSentence = [];
+        let selectedChoiceIdx = null;
+
+        function switchMode(mode) {
+            document.querySelectorAll('.hud-panel').forEach(p => p.classList.add('hide'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(`mode-${mode}`).classList.remove('hide');
+            document.getElementById(`btn-${mode}`).classList.add('active');
+            
+            if(mode === 'evidence') loadEvidence();
+        }
+
+        function loadEvidence() {
+            const m = missions[currentEvIndex];
+            const container = document.getElementById('evidence-container');
+            const nextBtn = document.getElementById('next-ev-btn');
+            const undoMsg = document.getElementById('undo-msg');
+            
+            nextBtn.classList.add('hide');
+            undoMsg.classList.add('opacity-0');
+            builtSentence = [];
+            selectedChoiceIdx = null;
+
+            let html = `
+                <div class="bg-black/40 border border-gray-800 p-6 rounded w-full max-w-2xl text-center mb-10 shadow-inner">
+                    <p class="text-[0.6rem] tech-font text-gray-500 uppercase tracking-widest mb-2">${m.title}</p>
+                    <p class="text-sm italic text-gray-300">"${m.prompt}"</p>
+                </div>
+            `;
+
+            if (m.type === 'choice') {
+                html += `<h2 class="text-2xl md:text-4xl font-bold mb-12 text-center w-full">${m.sentence}</h2>`;
+                html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">`;
+                m.options.forEach((opt, idx) => {
+                    html += `<button onclick="handleChoice(this, ${idx})" class="choice-btn py-4 px-8 text-xl font-bold tech-font uppercase rounded-sm">${opt}</button>`;
+                });
+                html += `</div>`;
+                html += `<div class="mt-10 min-h-[50px]"><button id="confirm-choice" onclick="verifyChoice()" class="hide bg-[#b026ff]/20 text-[#b026ff] border border-[#b026ff]/50 px-10 py-3 rounded tech-font uppercase tracking-widest text-xs hover:bg-[#b026ff]/40">Verify Deduction</button></div>`;
+            } else {
+                html += `
+                    <div id="dropzone" class="dropzone mb-8 w-full max-w-2xl text-xl font-bold text-white shadow-inner"></div>
+                    <div class="flex flex-wrap justify-center gap-3 w-full max-w-2xl" id="word-bank">
+                `;
+                let shuffled = [...m.words].sort(() => Math.random() - 0.5);
+                shuffled.forEach((word, idx) => {
+                    html += `<div id="word-${idx}" onclick="addWord('${word.replace(/'/g, "\\'")}', ${idx})" class="word-chip">${word}</div>`;
+                });
+                html += `</div>
+                    <div class="mt-10 min-h-[50px] w-full text-center">
+                        <button id="confirm-seq" onclick="verifySequence()" class="hide bg-[#b026ff]/20 text-[#b026ff] border border-[#b026ff]/50 px-10 py-3 rounded tech-font uppercase tracking-widest text-xs hover:bg-[#b026ff]/40">Execute Sequence</button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // --- CHOICE UNDO LOGIC ---
+        function handleChoice(btn, idx) {
+            const confirmBtn = document.getElementById('confirm-choice');
+            const undoMsg = document.getElementById('undo-msg');
+
+            if (selectedChoiceIdx === idx) {
+                selectedChoiceIdx = null;
+                btn.classList.remove('selected');
+                confirmBtn.classList.add('hide');
+                undoMsg.classList.add('opacity-0');
+            } else {
+                document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+                selectedChoiceIdx = idx;
+                btn.classList.add('selected');
+                confirmBtn.classList.remove('hide');
+                undoMsg.classList.remove('opacity-0');
+            }
+        }
+
+        function verifyChoice() {
+            const m = missions[currentEvIndex];
+            const btn = document.querySelectorAll('.choice-btn')[selectedChoiceIdx];
+            const selectedText = m.options[selectedChoiceIdx];
+            
+            document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+            document.getElementById('confirm-choice').classList.add('hide');
+            document.getElementById('undo-msg').classList.add('opacity-0');
+
+            if (selectedText === m.answer) {
+                btn.classList.add('border-green-500', 'text-green-500', 'bg-green-500/10');
+            } else {
+                btn.classList.add('border-red-500', 'text-red-500', 'bg-red-500/10');
+                document.querySelectorAll('.choice-btn').forEach(b => {
+                    if(b.innerText.toLowerCase() === m.answer.toLowerCase()) b.classList.add('border-green-500', 'text-green-500');
+                });
+            }
+            document.getElementById('next-ev-btn').classList.remove('hide');
+        }
+
+        // --- BUILDER UNDO LOGIC ---
+        function addWord(word, originalIndex) {
+            const wordEl = document.getElementById(`word-${originalIndex}`);
+            if (wordEl.classList.contains('used')) return;
+
+            wordEl.classList.add('used');
+            builtSentence.push({ word, originalIndex });
+            renderDropzone();
+            document.getElementById('undo-msg').classList.remove('opacity-0');
+
+            if (builtSentence.length === missions[currentEvIndex].words.length) {
+                document.getElementById('confirm-seq').classList.remove('hide');
+            }
+        }
+
+        function removeWord(dropIndex, originalIndex) {
+            builtSentence.splice(dropIndex, 1);
+            document.getElementById(`word-${originalIndex}`).classList.remove('used');
+            document.getElementById('confirm-seq').classList.add('hide');
+            renderDropzone();
+            if(builtSentence.length === 0) document.getElementById('undo-msg').classList.add('opacity-0');
+        }
+
+        function renderDropzone() {
+            const dz = document.getElementById('dropzone');
+            dz.innerHTML = '';
+            builtSentence.forEach((item, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'drop-chip';
+                chip.innerText = item.word;
+                chip.onclick = () => removeWord(idx, item.originalIndex);
+                dz.appendChild(chip);
+            });
+        }
+
+        function verifySequence() {
+            const m = missions[currentEvIndex];
+            const userStr = builtSentence.map(i => i.word).join(' ');
+            const dz = document.getElementById('dropzone');
+            
+            document.getElementById('confirm-seq').classList.add('hide');
+            document.getElementById('undo-msg').classList.add('opacity-0');
+            dz.querySelectorAll('.drop-chip').forEach(c => c.onclick = null);
+
+            if (userStr === m.answer) {
+                dz.style.borderColor = "#22c55e";
+                dz.style.backgroundColor = "rgba(34, 197, 94, 0.1)";
+            } else {
+                dz.style.borderColor = "#ef4444";
+                dz.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+                dz.innerHTML = `<div class="w-full text-center"><span class="line-through opacity-40 block">${userStr}</span><span class="text-green-400 font-bold block">${m.answer}</span></div>`;
+            }
+            document.getElementById('next-ev-btn').classList.remove('hide');
+        }
+
+        function processEvidence() {
+            currentEvIndex++;
+            if(currentEvIndex < missions.length) loadEvidence();
+            else switchMode('stand');
+        }
+
+        window.onload = loadEvidence;
+    </script>
+</body>
+</html>
